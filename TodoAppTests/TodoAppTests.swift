@@ -9,28 +9,58 @@ import XCTest
 @testable import TodoApp
 
 final class TodoAppTests: XCTestCase {
+    
+    var coreDataManager: CoreDataManager!
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+        try super.setUpWithError()
+        coreDataManager = CoreDataManager()
+        
+        let allNotes = coreDataManager.fetchNotes()
+        for note in allNotes {
+            coreDataManager.delete(item: note)
         }
     }
 
+    override func tearDownWithError() throws {
+        coreDataManager = nil
+        try super.tearDownWithError()
+    }
+
+    func testAddNote() throws {
+        let title = "Test Title"
+        let details = "Test Details"
+        let date = Date()
+        
+        coreDataManager.addNote(title: title, createdDate: date, subtitle: details)
+        let notes = coreDataManager.fetchNotes()
+        
+        XCTAssertEqual(notes.count, 1)
+        XCTAssertEqual(notes.first?.title, title)
+        XCTAssertEqual(notes.first?.details, details)
+    }
+
+    func testIsDoneToggle() throws {
+        coreDataManager.addNote(title: "Toggle Me", createdDate: Date(), subtitle: "Toggling")
+        var note = coreDataManager.fetchNotes().first!
+        
+        let originalValue = note.isDone
+        coreDataManager.isDone(item: note)
+        note = coreDataManager.fetchNotes().first!
+        
+        XCTAssertNotEqual(note.isDone, originalValue)
+    }
+
+    func testDeleteNote() throws {
+        coreDataManager.addNote(title: "To Be Deleted", createdDate: Date(), subtitle: "Desc")
+        let notesBefore = coreDataManager.fetchNotes()
+        XCTAssertEqual(notesBefore.count, 1)
+        
+        if let note = notesBefore.first {
+            coreDataManager.delete(item: note)
+        }
+        
+        let notesAfter = coreDataManager.fetchNotes()
+        XCTAssertEqual(notesAfter.count, 0)
+    }
 }
